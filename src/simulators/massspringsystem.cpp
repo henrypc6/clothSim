@@ -235,22 +235,81 @@ void MassSpringSystem::collisionProjection()
 		Vert forceVec;
 		int f2Idx;
 
-		mbvh->checkFaceIntersect(f1,f2,forceVec, minDist, f2Idx);
+		// check face normals
+		vector<double> p1,p2;
+		mbvh->facePlane(f1,p1);
+		mbvh->facePlane(f2,p2);
 
-		Vert Norm = forceVec;
+		Vert n1(p1[0],p1[1],p1[2]);
+		Vert n2(p2[0],p2[1],p2[2]);
 
-		Vertex vertex = mesh->vertices[f2[f2Idx]];
-		if(Norm.dot(vertex->v) < 0)
+		Vert tmp = mbvh->faceCenter(f1) - mbvh->faceCenter(f2); 
+		double magnitude = tmp.norm()/2.0;
+		bool dir = tmp.dot(n1)>0;
+
+		if(n1.dot(n2) < 0)
 		{
-			Norm = -Norm;
+
+			for(int k =0; k<3; ++k)
+			{
+				Vertex v1 = mesh->vertices[f1[k]];
+				Vertex v2 = mesh->vertices[f2[k]];
+
+				if(dir)
+				{
+					v1->v += n1*magnitude;
+					v2->v += n2*magnitude;
+				}
+				else
+				{
+					v1->v += n2*magnitude;
+					v2->v += n1*magnitude;
+				}
+
+			}
+		}
+		else
+		{
+			for(int k =0; k<3; ++k)
+			{
+				Vertex v1 = mesh->vertices[f1[k]];
+				Vertex v2 = mesh->vertices[f2[k]];
+
+				if(dir) // f1 move with n2, f2 move with -n1
+				{
+					v1->v += n2*magnitude;
+					v2->v += -n1*magnitude;
+				}
+				else
+				{
+					v1->v += -n2*magnitude;
+					v2->v += n1*magnitude;
+				}
+
+			}
 		}
 
-		// cout<<"mindist "<<minDist<<endl;
 
+		// mbvh->checkFaceIntersect(f1,f2,forceVec, minDist, f2Idx);
+
+		// Vert Norm = forceVec;
+
+		// for(int k=0; k<3; ++k)
+		// {
+		// 	Vertex vertex = mesh->vertices[f2[k]];
+		// 	if(Norm.dot(vertex->v) < 0)
+		// 	{
+		// 		Norm = -Norm;
+		// 	}
+		// 	vertex->x += -fabs(minDist)*Norm;
+
+		// }
+
+
+		// cout<<"mindist "<<minDist<<endl;
 		// vertex->x += fabs(minDist)*Norm*0.5;
 		// vertex->v = vertex->v - vertex->v.dot(Norm)*1.3*Norm;
 
-		vertex->x += -fabs(minDist)*Norm*0.4;
 		// cout<<vertex->x<<endl;
 		// Eigen::Vector3d vn = vertex->v.dot(Norm)*Norm;
 		// Eigen::Vector3d vt = vertex->v - vn;

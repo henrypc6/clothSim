@@ -15,7 +15,6 @@ typedef Eigen::Vector3d Vert;
 typedef Eigen::Vector3i Face;
 
 // double NegativeInf = numeric_limits<double>::min();
-
 struct Node
 {
 	Eigen::Vector3d center;

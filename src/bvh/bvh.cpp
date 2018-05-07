@@ -1,5 +1,7 @@
 #include "bvh.hpp"
 
+double intersectRange[] = {-0.2, 1.2};
+
 bvh::bvh(int _max_faces_per_leaf, double _min_thickness):max_faces_per_leaf(_max_faces_per_leaf), min_thickness(_min_thickness)
 {
 }
@@ -199,15 +201,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2, Vert& forceVec, double& outMinDis
 	// check if parallel
 	double tol = 0.0001;
 	if( fabs(v1Dist-v2Dist) < tol && fabs(v1Dist - v3Dist) < tol)
-	{
-		// if( fabs(v1Dist) > min_thickness)
 		return false;
-		// else
-			// return true;
-	}
-
-	// cout<<"checking face 1 "<<f1[0]<<" "<<f1[1]<<" "<<f1[2]<<endl;
-	// cout<<"checking face 2 "<<f2[0]<<" "<<f2[1]<<" "<<f2[2]<<endl;
 
 	//////////////////////////Check if each line seg in f2 intersect with triangle f1////////////////
 	Vert N(p1[0],p1[1],p1[2]); // plane normal
@@ -217,7 +211,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2, Vert& forceVec, double& outMinDis
 	bool seg1B = false;
 	Vert seg1 = f2_v1 - f2_v2;
 	double t1 = -(d + N.dot(f2_v2))/N.dot(seg1);
-	if(t1 >=0 && t1<=1.0) // only check if the line seg (seg1) intersect the plane
+	if(t1 >=intersectRange[0] && t1<=intersectRange[1] )// only check if the line seg (seg1) intersect the plane
 	{
 		Vert v = f2_v2 + t1 * seg1;
 		seg1B = vertexInTriangle(v, f1, N);
@@ -227,7 +221,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2, Vert& forceVec, double& outMinDis
 	bool seg2B = false;
 	Vert seg2 = f2_v1 - f2_v3;
 	double t2 = -(d + N.dot(f2_v3))/N.dot(seg2);
-	if(t2 >=0 && t2<=1.0)
+	if(t2 >=intersectRange[0] && t2<=intersectRange[1])
 	{
 		Vert v = f2_v3 + t2 * seg2;
 		seg2B = vertexInTriangle(v, f1, N);
@@ -237,7 +231,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2, Vert& forceVec, double& outMinDis
 	bool seg3B = false;
 	Vert seg3 = f2_v2 - f2_v3;
 	double t3 = -(d + N.dot(f2_v3))/N.dot(seg3);
-	if(t3 >=0 && t3<=1.0)
+	if(t3 >=intersectRange[0] && t3<=intersectRange[1])
 	{
 		Vert v = f2_v3 + t3 * seg3;
 		seg3B = vertexInTriangle(v, f1, N);
@@ -300,9 +294,6 @@ bool bvh::checkFaceIntersect(Face f1, Face f2)
 			// return true;
 	}
 
-	// cout<<"checking face 1 "<<f1[0]<<" "<<f1[1]<<" "<<f1[2]<<endl;
-	// cout<<"checking face 2 "<<f2[0]<<" "<<f2[1]<<" "<<f2[2]<<endl;
-
 	//////////////////////////Check if each line seg in f2 intersect with triangle f1////////////////
 	Vert N(p1[0],p1[1],p1[2]); // plane normal
 	double d = p1[3];
@@ -311,7 +302,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2)
 	bool seg1B = false;
 	Vert seg1 = f2_v1 - f2_v2;
 	double t1 = -(d + N.dot(f2_v2))/N.dot(seg1);
-	if(t1 >=0 && t1<=1.0) // only check if the line seg (seg1) intersect the plane
+	if(t1 >= intersectRange[0] && t1<=intersectRange[1]) // only check if the line seg (seg1) intersect the plane
 	{
 		Vert v = f2_v2 + t1 * seg1;
 		seg1B = vertexInTriangle(v, f1, N);
@@ -321,7 +312,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2)
 	bool seg2B = false;
 	Vert seg2 = f2_v1 - f2_v3;
 	double t2 = -(d + N.dot(f2_v3))/N.dot(seg2);
-	if(t2 >=0 && t2<=1.0)
+	if(t2 >=intersectRange[0] && t2<=intersectRange[1])
 	{
 		Vert v = f2_v3 + t2 * seg2;
 		seg2B = vertexInTriangle(v, f1, N);
@@ -331,7 +322,7 @@ bool bvh::checkFaceIntersect(Face f1, Face f2)
 	bool seg3B = false;
 	Vert seg3 = f2_v2 - f2_v3;
 	double t3 = -(d + N.dot(f2_v3))/N.dot(seg3);
-	if(t3 >=0 && t3<=1.0)
+	if(t3 >=intersectRange[0] && t3<=intersectRange[1])
 	{
 		Vert v = f2_v3 + t3 * seg3;
 		seg3B = vertexInTriangle(v, f1, N);
@@ -397,6 +388,8 @@ void bvh::facePlane(Face f, std::vector<double>& outPlane)
 
 void bvh::facePlane(Vert v1, Vert v2, Vert v3, vector<double>& outPlane)
 {
+	outPlane = vector<double>(4,0);
+
 	Vert v21 = v2-v1;
 	Vert v31 = v3-v1;
 	Vert N = v21.cross(v31);
@@ -461,7 +454,7 @@ void bvh::build(int p, int r, int nodeIdx)
 
 	// split it in two parts 
 	int outDim = 0;
-	int q = splitFaces(p,r, box, outDim); // range from [p,r+1]
+	int q = splitFaces(p,r, box, outDim); // intersectRange from [p,r+1]
 
 	// for bad splits 
 	if((q == p || q == r+1) && (r-q) >= max_faces_per_leaf)
