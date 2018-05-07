@@ -3,14 +3,17 @@
 
 #include "simulator.hpp"
 #include "primitives/trimesh.hpp"
+#include "bvh/bvh.hpp"
 
-#define N 41
-#define L 0.8
+#define N 21
+#define L 0.4
 
 class MassSpringSystem : public Simulator
 {
 public:
 	TriMesh* mesh;
+	TriMesh* obstacle;
+	bvh *mbvh;
 	double ks;
 	double kd;
 

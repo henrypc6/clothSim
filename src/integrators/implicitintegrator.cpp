@@ -16,10 +16,10 @@ void ImplicitIntegrator::step(double dt) {
 	t.tick();
 	dynamics->getInertia(M);
 	t.tock();
-	std::cout << "getInertia:" << t.last << std::endl;
+	// std::cout << "getInertia:" << t.last << std::endl;
 	dynamics->getJacobians(Jx, Jv);
 	t.tock();
-	std::cout << "getJacobians:" << t.last << std::endl;
+	// std::cout << "getJacobians:" << t.last << std::endl;
 	
 	SpMat A = M/dt - Jx*dt - Jv;
 	Eigen::VectorXd b = f - Jv*dq + M*dq/dt;
@@ -28,7 +28,7 @@ void ImplicitIntegrator::step(double dt) {
 
 	dq = solver.compute(A).solve(b);
 	t.tock();
-	std::cout << "solve:" << t.last << std::endl;
+	// std::cout << "solve:" << t.last << std::endl;
 	q += dq*dt;
 	dynamics->setState(q, dq);
 }

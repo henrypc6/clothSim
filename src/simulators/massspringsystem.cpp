@@ -1,18 +1,24 @@
 #include "massspringsystem.hpp"
 #include <iostream>
 
+static Eigen::Vector3d c(0, -5, 0);
+static double r = 8;
+
 MassSpringSystem::MassSpringSystem(Integrator* _integrator) : Simulator(_integrator), ks(800), kd(10){
 
 }
 
 void MassSpringSystem::init() {
 	mesh = new TriMesh;
+
+	vector<Eigen::Vector3d> vertices;
 	Eigen::Vector3d o(-(N - 1)*L*.5, 8, -(N - 1)*L*.5);
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
 			Eigen::Vector3d x = Eigen::Vector3d(j*L, 0, i*L) + o;
 			Particle* particle = new Particle(x);
 			mesh->vertices.push_back(particle);
+			vertices.push_back(x);
 			Gravity* gravity = new Gravity(particle);
 			forces.push_back(gravity);
 			particle->setIndex(mesh->vertices.size() - 1);
@@ -48,6 +54,17 @@ void MassSpringSystem::init() {
 			}
 		}
 	}
+
+	// obstacle = new TriMesh;
+	// obstacle->loadObj("../meshes/sphere.obj");
+	// for (int v = 0; v < obstacle->vertices.size(); v++) {
+	// 	obstacle->vertices[v]->x *= r;
+	// 	obstacle->vertices[v]->x += c;
+	// }
+
+	// init bvh data structure
+	mbvh = new bvh(5,0.0001);
+	mbvh->assignObj(vertices, mesh->faces);
 }
 
 std::vector<Drawable*> MassSpringSystem::getObjectDrawables() {
@@ -192,7 +209,71 @@ void MassSpringSystem::getJacobians(SpMat &Jx, SpMat &Jv) {
 	Jv.setFromTriplets(triplesJv.begin(), triplesJv.end());
 }
 
-void MassSpringSystem::collisionProjection() {
+void MassSpringSystem::collisionProjection() 
+{
+	double resol = 0.01;
+	// build the bvh tree 
+	vector<Vert> verts;
+	for(int i = 0; i < mesh->vertices.size(); ++i)
+	{
+		verts.push_back(mesh->vertices[i]->x);
+	}
+	mbvh->assignObj(verts, mesh->faces);
+	mbvh->buildTree();
+	
+	// detect collision
+	vector<Eigen::Vector2i> intersectFaces;
+	mbvh->selfCollision(intersectFaces);
+
+	// update velocity
+	for(int i = 0 ; i < intersectFaces.size(); ++i)
+	{
+		Face f1 = mbvh->faces[intersectFaces[i][0]];
+		Face f2 = mbvh->faces[intersectFaces[i][1]];
+
+		double minDist;
+		Vert forceVec;
+		int f2Idx;
+
+		mbvh->checkFaceIntersect(f1,f2,forceVec, minDist, f2Idx);
+
+		Vert Norm = forceVec;
+
+		Vertex vertex = mesh->vertices[f2[f2Idx]];
+		if(Norm.dot(vertex->v) < 0)
+		{
+			Norm = -Norm;
+		}
+
+		// cout<<"mindist "<<minDist<<endl;
+
+		// vertex->x += fabs(minDist)*Norm*0.5;
+		// vertex->v = vertex->v - vertex->v.dot(Norm)*1.3*Norm;
+
+		vertex->x += -fabs(minDist)*Norm*0.4;
+		// cout<<vertex->x<<endl;
+		// Eigen::Vector3d vn = vertex->v.dot(Norm)*Norm;
+		// Eigen::Vector3d vt = vertex->v - vn;
+		// vn *= -0.3;
+		// vertex->v = vt + vn;
+	
+	}
+
+	// sphere obstacle 
+	// for (int v = 0; v < mesh->vertices.size(); v++) 
+	// {
+	// 	Vertex vertex = mesh->vertices[v];
+	// 	double d = (vertex->x - c).norm() - (r + thickness);
+	// 	if (d < 0) 
+	// 	{
+	// 		Eigen::Vector3d n = (vertex->x - c).normalized();
+	// 		vertex->x += -d*n;
+	// 		Eigen::Vector3d vn = vertex->v.dot(n)*n;
+	// 		Eigen::Vector3d vt = vertex->v - vn;
+	// 		vn *= -0.3;
+	// 		vertex->v = vt + vn;
+	// 	}
+	// }
 
 }
 
