@@ -5,7 +5,7 @@
 #include "primitives/trimesh.hpp"
 #include "bvh/bvh.hpp"
 
-#define N 21
+#define N 35
 #define L 0.8
 
 class MassSpringSystem : public Simulator
