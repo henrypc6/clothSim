@@ -63,7 +63,8 @@ void MassSpringSystem::init() {
 	// }
 
 	// init bvh data structure
-	mbvh = new bvh(5,0.1);
+	mbvh = new bvh(32,0.001);
+	cout<<"number of vertices "<<vertices.size()<<" facecs "<<mesh->faces.size()<<endl;
 	// mbvh->assignObj(vertices, mesh->faces);
 }
 
@@ -343,6 +344,7 @@ void MassSpringSystem::advanceStep() {
 		mesh->vertices[idx]->x = Eigen::Vector3d((N - 1)*L*.5, 8, (i - (N - 1)*.5)*L);
 		mesh->vertices[idx]->v = Eigen::Vector3d(0, 0, 0);
 	}
-	// collisionProjection();
+	collisionProjection();
+	// mbvh->collisionDetectionN2();
 	Simulator::advanceStep();
 }

@@ -21,9 +21,11 @@ void bvh::assignObj(vector<Vert> _vertices, vector<Face> _faces)
 
 	// assign centers of face in prior
 	faceCenters.clear();
+	faceIndex.clear();
 	for(int i = 0 ; i < faces.size(); ++i)
 	{
 		faceCenters.push_back(faceCenter(faces[i]));
+		faceIndex.push_back(i);
 	}
 
 	n_vertices = vertices.size();
@@ -35,6 +37,19 @@ void bvh::selfCollision(vector<Eigen::Vector2i>& intersectFaces)
 	collisonDetection(treeNodes, treeNodes, 0, 0, intersectFaces);
 
 	cout<<"intersecting faces "<<intersectFaces.size()<<endl;
+}
+
+void bvh::collisionDetectionN2()
+{
+	for(int i = 0 ; i < faces.size(); ++i)
+	{
+		Face f1 = faces[i];
+		for(int j = 0 ; j < faces.size(); ++j)
+		{
+			Face f2 = faces[j];
+			checkFaceIntersect(f1,f2);
+		}
+	}
 }
 
 // check collison of a face to a set of faces 
@@ -430,6 +445,7 @@ void bvh::buildTree()
 
 void bvh::build(int p, int r, int nodeIdx)
 {
+	// cout<<p<<" "<<r<<" "<<nodeIdx<<endl;
 	// add to current node
 	treeNodes[nodeIdx].center = findCenter(p, r);
 	treeNodes[nodeIdx].box = findBoundBox(p, r);
@@ -450,25 +466,24 @@ void bvh::build(int p, int r, int nodeIdx)
 	}
 
 	// find bounding box 
-	vector<double> box = findBoundBox(p, r);
+	vector<double> box = treeNodes[nodeIdx].box;
 
 	// split it in two parts 
 	int outDim = 0;
 	int q = splitFaces(p,r, box, outDim); // intersectRange from [p,r+1]
-
+	// int q = ceil((p+r)/2.0);
 	// for bad splits 
 	if((q == p || q == r+1) && (r-q) >= max_faces_per_leaf)
 	{
-		// cout<<" it is a bad split "<<endl;
 		q = ceil((p+r)/2.0);
 	}
 
 	// split ratio
-	double badnessRatio = (double)(q-p)/(double)(r-p+1);
-	if (badnessRatio > 0.8 || badnessRatio < 0.2)
-	{
-		q = ceil((p+r)/2.0);
-	}
+	// double badnessRatio = (double)(q-p)/(double)(r-p+1);
+	// if (badnessRatio > 0.9 || badnessRatio < 0.1)
+	// {
+	// 	q = ceil((p+r)/2.0);
+	// }
 
 	// assign split dimension
 	treeNodes[nodeIdx].dimensionIdx = outDim;
@@ -537,46 +552,28 @@ vector<double> bvh::findBoundBox(int p, int r)
 {
 	vector<double> box(6);
 
-	vector<double> xvec,yvec,zvec;
-	for(int i = p ; i <= r; ++i)
+	box = {10000,-10000,10000,-10000,10000,-10000};
+
+	for(int i = p ; i <= r; i=i+100)
 	{
-		xvec.push_back(vertices[faces[i][0]][0]);
-		xvec.push_back(vertices[faces[i][1]][0]);
-		xvec.push_back(vertices[faces[i][2]][0]);
+		box[0] = min(min(min(vertices[faces[i][0]][0],vertices[faces[i][1]][0]),vertices[faces[i][2]][0]),box[0]);
+		box[1] = max(max(max(vertices[faces[i][0]][0],vertices[faces[i][1]][0]),vertices[faces[i][2]][0]),box[1]);
 
-		yvec.push_back(vertices[faces[i][0]][1]);
-		yvec.push_back(vertices[faces[i][1]][1]);
-		yvec.push_back(vertices[faces[i][2]][1]);
+		box[2] = min(min(min(vertices[faces[i][0]][1],vertices[faces[i][1]][1]),vertices[faces[i][2]][1]),box[2]);
+		box[3] = max(max(max(vertices[faces[i][0]][1],vertices[faces[i][1]][1]),vertices[faces[i][2]][1]),box[3]);
 
-		zvec.push_back(vertices[faces[i][0]][2]);
-		zvec.push_back(vertices[faces[i][1]][2]);
-		zvec.push_back(vertices[faces[i][2]][2]);
+		box[4] = min(min(min(vertices[faces[i][0]][2],vertices[faces[i][1]][2]),vertices[faces[i][2]][2]),box[4]);
+		box[5] = max(max(max(vertices[faces[i][0]][2],vertices[faces[i][1]][2]),vertices[faces[i][2]][2]),box[5]);
 	}
-
-	// sort the vector
-	sort(xvec.begin(), xvec.end());
-	sort(yvec.begin(), yvec.end());
-	sort(zvec.begin(), zvec.end());
-
-	box[0] = xvec[0];
-	box[1] = xvec[xvec.size()-1];
-
-
-	box[2] = yvec[0];
-	box[3] = yvec[yvec.size()-1];
-	
-
-	box[4] = zvec[0];
-	box[5] = zvec[zvec.size()-1];
 	
 	// make sure the bounding box is not too small
-	if((box[1]-box[0]) < min_thickness)
-		box[1] = box[0] + min_thickness;
-	if((box[3]-box[2]) < min_thickness)
-		box[3] = box[2] + min_thickness;
-	if((box[5]-box[4]) < min_thickness)
-		box[5] = box[4] + min_thickness;
-
+	// if((box[1]-box[0]) < min_thickness)
+	// 	box[1] = box[0] + min_thickness;
+	// if((box[3]-box[2]) < min_thickness)
+	// 	box[3] = box[2] + min_thickness;
+	// if((box[5]-box[4]) < min_thickness)
+	// 	box[5] = box[4] + min_thickness;
+	// cout<<box[0]<<" "<<box[1]<<" "<<box[2]<<" "<<box[3]<<" "<<box[4]<<" "<<box[5]<<endl;
 	return box;
 }
 

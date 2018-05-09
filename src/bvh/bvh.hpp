@@ -49,6 +49,7 @@ public:
 	void collisonDetection(vector<Node>& T1, vector<Node>& T2, int idx1, int idx2, vector<Eigen::Vector2i>& intersectFaces);
 	bool checkBoxIntersect(Node& N1, Node& N2);
 	bool checkBoxIntersect(vector<double>& box1, vector<double>& box2, Vert& v1, Vert& v2);
+	void collisionDetectionN2();
 
 	bool checkFaceIntersect(Face f1, Face f2, Vert& forceVec, double& outMinDist, int& f2Index);
 	bool checkFaceIntersect(Face f1, Face f2);
@@ -75,6 +76,7 @@ public:
 	vector<Vert> vertices;
 	vector<Face> faces;
 	vector<Vert> faceCenters;
+	vector<int> faceIndex;
 
 	vector<Node> treeNodes;
 
